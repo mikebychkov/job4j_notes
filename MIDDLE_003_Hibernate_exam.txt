@@ -1,0 +1,205 @@
+1. Что такое ORM?
+
+	Object Relational Mapping
+
+
+2. Опиши, как конфигурируется Hibernate. Рассказать про hibernate.cfg.xml и про mapping.
+
+	hibernate.cfg.xml - нативный для hibernate файл конфигурации 
+	persistence.xml - файл конфигурации в стандарте JPA 
+
+	есть варианты mapping: 
+	только в xml
+	в xml и анотациями
+	анотациями и без использования xml
+
+
+3. Жизненный цикл Entity.
+
+	transient - создан, но не сохранен
+	persistent or managed - создан, сохранен и управляется persistence context (Session, EntityManager)
+	detached - создан, сохранен, но существующий вне контекста
+	removed - для существующего объекта запланировано удаление
+
+
+4. Зачем нужен класс SessionFactory? Является ли он потокобезопасным?
+
+	SessionFactory - является потокобезопасным
+
+	Основной объект для работы в hibernate
+
+
+5. Зачем нужен класс Session? Является ли он потокобезопасным?
+
+	Session - не является потокобезопасным (так называемый persistence context)
+
+	Объект предназначенный для выполнения локального ряда действий с бд
+
+
+6. В чем отличие методов Session.get Session.load?
+
+	Session.get - получает объект из базы сразу
+	Session.load - получает прокси объекта и достает данные по мере требования
+
+
+7. Расскажите про методы flush close.
+
+	Session.flush() - применяет все произведенные манипуляции в контексте к базе данных
+	Session.close() - закрывает персистенс контекст
+
+
+8. В чем отличие методы save от saveOrUpdate и merge?
+
+	saveOrUpdate - если объект не сохранен, он сохраняется, если уже отражен в бд то он обновляется
+	merge - получает объект и копирует его поля в соответствующий (по ид) объект в бд и возвращает его
+
+
+9. Расскажите процесс создания, редактирования, чтения и удаления данных через Hibernate.
+
+	Для того чтобы сохранить объект он должен быть указан как Entity в конфигурации хибернейт.
+	Из фабрики сессий мы получаем сессию.
+	В сессии начинаем транзакцию.
+	Делаем соответствующие изменения с объектом через объект сессии.
+	В сессии получаем текущую транзакцию и киммитим ее, либо если есть ошибки делаем ролбэк.
+	Закрываем сессию.
+
+
+10. Как осуществляется иерархия наследования в Hibernate? Рассказать про три стратегии наследования.
+
+	@MappedSuperclass
+	public static class Account {...}
+
+	Для каждого дочернего класса будет создана таблица, а информация из родительского класса будет храниться вместе дочерними классами в каждой таблице.
+	Нет возможности сделать выборку по дочернему классу так как он не отображен в бд.
+
+
+	// SINGLE_TABLE (денормализованная схема хранения, возможны нарушения целостности данных) дефолтная схема JPA если не указано иное
+
+	@Entity(name = "Account")
+	@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+	public static class Account {...}
+
+	Parent annotations:
+	  @DiscriminatorColumn(name = "BD_TYPE") || @DiscriminatorFormula("CASE WHEN CARD_NUMBER IS NOT NULL THEN 'CC' ELSE 'BA' END")
+	Child annotations:
+	  @DiscriminatorValue("BA")
+	  @DiscriminatorValue("CC")
+	  
+	Будет создана одна таблица в которой будут храниться данные для всех классов в иерархии наследования.
+	Разделять данные по классам хибер будет согласно данным колонки DiscriminatorColumn.
+	  
+
+	// JOINED (выборка будет производиться join-ом таблиц)
+
+	@Entity(name = "Account")
+	@Inheritance(strategy = InheritanceType.JOINED)
+	public static class Account {...}
+
+	Для класса родителя и дочерних классов будут созданы таблицы в которых будут храниться данные с общим ключем
+
+
+	// TABLE_PER_CLASS (не поддерживается JPA)
+
+	@Entity(name = "Account")
+	@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
+	public static class Account {...}
+
+	Схема таблиц такая же как у @MappedSuperclass, только есть требование к тому чтобы ID был указан в родительском классе, во всех дочерних таблицах поля родительского класса
+	назывались одинаково
+  
+
+11. Можно ли создать собственный тип данных?
+
+	Да. Нужно использовать интерфейсы BasicType или UserType
+
+
+12. Какие коллекции поддерживаются на уровне mapping?
+
+	List, Map, Set
+
+
+13. Зачем нужен класс Transactional?
+
+	для того чтобы обеспечить использование возможностей бд по атомарной обработке данных
+  
+
+14. Расскажите про уровни изоляции? Какие уровни поддерживаются в hibernate? Как их устанавливать?
+
+	session.beginTransaction();
+	session.getTransaction().commit();
+
+	session.beginTransaction();
+	session.getTransaction().rollback();
+
+
+ hibernate.connection.isolation = 4
+
+•    1 – изоляция уровня чтения неподтвержденного;
+•    2 – изоляция уровня чтения подтвержденного;
+•    4 – изоляция уровня повторяемого чтения;
+•    8 – упорядоченная изоляция.
+
+
+15. Что такое OplimisticLock? Расскажите стратегии создания через version, timestamp.
+
+  OplimisticLock - в случае с хибернейт проверка производится на уровне самого хибернейт, (пессимистическая блокировка ппроизводится на уровне бд),
+          и при это используется поле помеченное аннотацией @Version с целочисленным или временнЫм типом
+
+
+16. Расскажите про стратегии извлечения данных urgy, lazy? 
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	FetchType.LAZY
+	FetchType.EAGER
+
+	@Fetch(...)
+	FetchMode.SELECT - can lead to N+1 problem
+	FetchMode.SUBSELECT - uses subselect query (LAZY)
+	FetchMode.JOIN - uses join query (EAGER)
+
+
+17. Что такое объект Proxy? С чем связана ошибка LazyInitializationException? Как ее избежать?
+
+	когда мы читаем объект через load мы не получаем сам объект, а получаем прокси на объект, он имитирует поведение объект 
+	и читает данные только по мере необходимости
+
+	LazyInitializationException - мы получаем когда читаем поля, у которых чтение установлено Lazy, у объекта который был отключен от персистент контекста 
+
+
+18. HQL. Расскажи основные элементы синтаксиса HQL? Простой запрос, запрос join? Создания объекта через конструтор.
+
+	HQL очень сильно похож на SQL, только вместо таблиц используются имена классов хранимых моделей
+
+
+19. Расскажите про уровни кешей в hibernate? 
+
+	Session - persistence context - first level cache
+	  
+	кэш второго уровня нужно включать указывая реализацию JCache
+
+	<property name="hibernate.cache.region.factory_class">org.hibernate.cache.jcache.JCacheRegionFactory</property>
+	<property name="hibernate.javax.cache.provider">org.ehcache.jsr107.EhcacheCachingProvider</property>
+
+	<property name="hibernate.cache.use_second_level_cache">true</property>
+
+	затем нужно настраивать @Entity с помощью @Cacheable (для кэширования) и @Cache (для настройки кэширования)
+
+	кэш запросов нужно включать отдельно
+
+	<property name="hibernate.cache.use_query_cache">true</property>
+
+
+20. Что такое StatelessSessionFactory? Зачем он нужен, где он используется?
+
+	StatelessSession has no context, no cache, collections ignored, no lazy load
+
+	низкоуровневая абстракция над JDBC
+
+
+21. Зачем нужен решим read-only?
+
+	позволяет избежать накладных расходов связанных с синхронизацией и записью/изменением данных
+
+	Session.setDefaultReadOnly( true );
+	Query.setReadOnly( true );
+	Session.setReadOnly(entityOrProxy, true)

@@ -1,0 +1,7 @@
+
+ mvn archetype:generate -DgroupId=com -DartifactId=job4j_dreamjob -DarchetypeArtifactId=maven-archetype-simple -DarchetypeVersion=1.4 -DinteractiveMode=false
+ mvn install
+ 
+ mvn archetype:generate -DgroupId=com -DartifactId=cinema -DarchetypeArtifactId=maven-archetype-webapp -DarchetypeVersion=1.4 -DinteractiveMode=false
+ mvn install
+ 

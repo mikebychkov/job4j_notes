@@ -1,0 +1,27 @@
+1. Для вычисления хэша объекта нужно использовать значимые поля или бизнес поля, поля данных характеризующих объект как сущность.
+Объединять эти хэши рекомендуется следующим образом:
+int result = param1.hashCode();
+result = 31 * result + param2.hashCode();
+result = 31 * result + param3.hashCode();
+где paramN это значимые поля объекта.
+(31 * i) == (i << 5) - i
+
+Для простых типов рекомендуется использовать следующие варианты получения хэш значения:
+boolean (f):
+int с = f ? 0 : 1;
+byte, char, short, int (f):
+int c = (int)f;
+long (f): 
+int c = (int)(f ^ (f >>> 32))
+float (f):
+int c = Float.floatToIntBits(f);
+double (f):
+long l = Double.doubleToLongBits(f);
+int c = (int)(l ^ (l >>> 32))
+
+2. Через операцию % в HashMap из хэша объекта-ключа получается индекс ячейки в которую будет помещен объект:
+int index = Math.abs(hashCode) % mapSize;
+
+В реализации класса HashMap.java используется следующий метод расчета хэш значения:
+int h = key.hashCode();
+int c = h ^ (h >>> 16);
